@@ -1,4 +1,4 @@
-## Deals with trapezoidal and simpson13 integration techniques
+## This lab is all about learning to do integration using trapezoidal rule and simpson13 rule.
 
 import numpy as np
 import math
