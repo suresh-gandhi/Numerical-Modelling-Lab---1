@@ -1,28 +1,20 @@
-#### ASSIGNMENT - 4 
-#### @author - SURESH GANDHI (14MI31024)
+## Lab - 4, @author - Suresh Gandhi
 
-MAX_LOG_RATE = 1e3
-BASE_TOL = 1e-12
-irrMaxInterations = 70
-irrAccuracy = .00000001
-irrInitialGuess = 0
 import pandas as pd
-import numpy 
-import math 
 import numpy as np
+import math 
 
 ## Function to calculate the NPV
 def NPV(array,r):
-    N = 0
+    N = 0;
     for i in range(len(array)):
         N = N + array[i]/math.pow(1+r,i)
-    return N
+    return N;
   
 ## Function for data processing
 def data_process(data):
     data.fillna(0, inplace  = True)
     array = np.array(data)
-
     for i in range(array.shape[1]):
         array[4][i] = array[3][i]-array[2][i]-array[1][i]
         
@@ -33,65 +25,80 @@ def data_process(data):
     
     return array
  
-## Function to calculate the IRR
-def IRR(values):
-    s = 0
-    r = numpy.arange(len(values))
-    if len(values) == 0:
-        return s
+## Function to calculate the irr based on Newton Raphson method
+def irr_newton(stream):
+    rate_0 = 0.0
+    n = 0
+    d = 0
+    s=0
+    r = np.arange(len(stream))
+    for steps in range(50):
+        # print (steps)
 
-    x0 = 0
-    x1 = 0
-    for i in range(0, irrMaxInterations):
-        fValue = 0
-        fDerivative = 0
-        for k in r:
-            fValue = fValue + values[k] / math.pow(1.0 + x0, k)
+        for i in range(len(r)):
+            n = n + stream[i] / (math.pow(1 + rate_0, i + 1))
 
-            fDerivative = round(fDerivative - k * values[k] / math.pow(1.0 + x0, k + 1.0), 3)
-
-        x1 = x0 - round(fValue / fDerivative, 4)
-        if abs(x1 - x0) > irrAccuracy:
-            s = x1
+        for i in range(len(r)):
+            d = d + (i + 1) * stream[i] / (math.pow(1 + rate_0, i + 2))
+        # print (d)
+        rate_1 = rate_0 + n / d
+        if (abs(rate_1 - rate_0) > 0.0001):
+            s=rate_1
             break
-        else:
-            x0 = x1
-
+        else: rate_0 = rate_1
     return s
-       
-## The main driver function
+
+def irr_bro(stream):
+    rate = 0.0
+    for steps in range(50):
+        r = np.arange(len(stream))
+        # Factor exp(m) out of the numerator & denominator for numerical stability
+        m = max(-rate * r)
+        f = np.exp(-rate * r - m)
+        t = np.dot(f, stream)
+        if abs(t) < 0.0001 * math.exp(-m):
+            break
+        u = np.dot(f * r, stream)
+        # Clip the update to avoid jumping into some numerically unstable place
+        rate = rate + np.clip(t / u, -1.0, 1.0)
+
+    return math.exp(rate) - 1
+  
+## Driver function      
 def main():
     
     data_pa  = pd.read_csv('cf_Panihati.csv', header = None, index_col = 0)
     array_pa = data_process(data_pa)
     npv_pa = NPV(array_pa[5], array_pa[7][0]/100)
-    irr_pa = IRR(array_pa[5])
+    irr_pa = irr_bro(array_pa[5])
+    print("NPV for Panihati coal block is:", npv_pa)
+    print("IRR for Panihati coal block is:", irr_pa*100)
     
     data_ek  = pd.read_csv('cf_Ekchakra.csv', header = None, index_col = 0)
     array_ek = data_process(data_ek)
     npv_ek = NPV(array_ek[5], array_ek[7][0]/100) 
-    irr_ek = IRR(array_ek[5])
+    irr_ek = irr_bro(array_ek[5])
+    print("\nNPV for Ekchakra coal block is:", npv_ek)
+    print("IRR for Ekchakra coal block is:", irr_ek*100)
     
     data_re  = pd.read_csv('cf_Remuna.csv', header = None, index_col = 0)
     array_re = data_process(data_re)
     npv_re = NPV(array_re[5], array_re[7][0]/100)   
-    irr_re = IRR(array_re[5])
+    irr_re = irr_bro(array_re[5])
+    print("\nNPV for Remuna coal block is:", npv_re)
+    print("IRR for Remuna coal block is:", irr_re*100)
 
 
     data_bh  = pd.read_csv('cf_Bhadrani.csv', header = None, index_col = 0)
     array_bh = data_process(data_bh)
     npv_bh = NPV(array_bh[5], array_bh[7][0]/100) 
-    irr_bh = IRR(array_bh[5])
+    irr_bh = irr_bro(array_bh[5])
 
-    print("IF WE CONSIDER THE NPV FOR THE PROJECT DECISION: ")
-    print("MR GOPINATH SHOULD GO WITH THE BHANDARI PROJECT AS ITS NPV IN CR IS ")
-    print(npv_bh) 
     
-    print("IF WE CONSIDER THE IRR FOR THE PROJECT DECISION")
-    print("MR GOPINATH SHOULD GO WITH THE BHANDARI PROJECT AS ITS IRR IS ")
-    print(irr_bh) 
+    print("\nMaximum value of NPV is for Bhadrani coal block:",npv_bh)
+    
+    print("Maximum value of IRR is for Bhadrani coal block:",irr_bh*100)
+
         
 if __name__ == "__main__": main()
-    
-
 
